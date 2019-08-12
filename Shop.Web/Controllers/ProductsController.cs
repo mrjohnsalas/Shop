@@ -1,39 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using Shop.Web.Data;
-using Shop.Web.Data.Entities;
-
-namespace Shop.Web.Controllers
+﻿namespace Shop.Web.Controllers
 {
+    using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Mvc;
+    using Microsoft.EntityFrameworkCore;
+    using Data;
+    using Data.Entities;
+    using Helpers;
+
     public class ProductsController : Controller
     {
-        private readonly IRepository _repository;
+        private readonly IProductRepository _repository;
+        private readonly IUserHelper _userHelper;
 
-        public ProductsController(IRepository repository)
+        public ProductsController(IProductRepository repository, IUserHelper userHelper)
         {
+            _userHelper = userHelper;
             _repository = repository;
         }
 
         // GET: Products
         public IActionResult Index()
         {
-            return View(_repository.GetProducts());
+            return View(_repository.GetAll());
         }
 
         // GET: Products/Details/5
-        public IActionResult Details(int? id)
+        public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
             {
                 return NotFound();
             }
 
-            var product = _repository.GetProduct(id.Value);
+            var product = await _repository.GetByIdAsync(id.Value);
             if (product == null)
             {
                 return NotFound();
@@ -56,20 +55,21 @@ namespace Shop.Web.Controllers
             if (!ModelState.IsValid)
                 return View(product);
 
-            _repository.AddProduct(product);
-            await _repository.SaveAllAsync();
+            //TODO: change for the logged user
+            product.User = await _userHelper.GetUserByEmailAsync("salas.john@hotmail.com");
+            await _repository.CreateAsync(product);
             return RedirectToAction(nameof(Index));
         }
 
         // GET: Products/Edit/5
-        public IActionResult Edit(int? id)
+        public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
             {
                 return NotFound();
             }
 
-            var product = _repository.GetProduct(id.Value);
+            var product = await _repository.GetByIdAsync(id.Value);
             if (product == null)
             {
                 return NotFound();
@@ -87,12 +87,13 @@ namespace Shop.Web.Controllers
 
             try
             {
-                _repository.UpdateProduct(product);
-                await _repository.SaveAllAsync();
+                //TODO: change for the logged user
+                product.User = await _userHelper.GetUserByEmailAsync("salas.john@hotmail.com");
+                await _repository.UpdateAsync(product);
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!_repository.ProductExists(product.Id))
+                if (!await _repository.ExistAsync(product.Id))
                 {
                     return NotFound();
                 }
@@ -105,14 +106,14 @@ namespace Shop.Web.Controllers
         }
 
         // GET: Products/Delete/5
-        public IActionResult Delete(int? id)
+        public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
             {
                 return NotFound();
             }
 
-            var product = _repository.GetProduct(id.Value);
+            var product = await _repository.GetByIdAsync(id.Value);
             if (product == null)
             {
                 return NotFound();
@@ -126,9 +127,8 @@ namespace Shop.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var product = _repository.GetProduct(id);
-            _repository.RemoveProduct(product);
-            await _repository.SaveAllAsync();
+            var product = await _repository.GetByIdAsync(id);
+            await _repository.DeleteAsync(product);
             return RedirectToAction(nameof(Index));
         }
     }
