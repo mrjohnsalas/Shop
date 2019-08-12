@@ -1,4 +1,7 @@
-﻿namespace Shop.Web.Controllers
+﻿using System.IO;
+using Shop.Web.Models;
+
+namespace Shop.Web.Controllers
 {
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
@@ -50,12 +53,23 @@
         // POST: Products/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Product product)
+        public async Task<IActionResult> Create(ProductViewModel product)
         {
             if (!ModelState.IsValid)
                 return View(product);
 
-            //TODO: change for the logged user
+            var path = string.Empty;
+            if (product.ImageFile != null && product.ImageFile.Length > 0)
+            {
+                path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\images\\Products", product.ImageFile.FileName);
+                using (var stream = new FileStream(path, FileMode.Create))
+                    await product.ImageFile.CopyToAsync(stream);
+                path = $"~/images/Products/{product.ImageFile.FileName}";
+            }
+
+            product.ImageUrl = path;
+
+            //TODO: Pending to change to: this.User.Identity.Name
             product.User = await _userHelper.GetUserByEmailAsync("salas.john@hotmail.com");
             await _repository.CreateAsync(product);
             return RedirectToAction(nameof(Index));
