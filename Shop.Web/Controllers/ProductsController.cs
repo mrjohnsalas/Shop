@@ -94,13 +94,23 @@ namespace Shop.Web.Controllers
         // POST: Products/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Product product)
+        public async Task<IActionResult> Edit(ProductViewModel product)
         {
             if (!ModelState.IsValid)
                 return View(product);
 
             try
             {
+                var path = product.ImageUrl;
+                if (product.ImageFile != null && product.ImageFile.Length > 0)
+                {
+                    path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\images\\Products", product.ImageFile.FileName);
+                    using (var stream = new FileStream(path, FileMode.Create))
+                        await product.ImageFile.CopyToAsync(stream);
+                    path = $"~/images/Products/{product.ImageFile.FileName}";
+                }
+
+                product.ImageUrl = path;
                 //TODO: change for the logged user
                 product.User = await _userHelper.GetUserByEmailAsync("salas.john@hotmail.com");
                 await _repository.UpdateAsync(product);
