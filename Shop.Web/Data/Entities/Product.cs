@@ -30,5 +30,7 @@
         public double Stock { get; set; }
 
         public User User { get; set; }
+
+        public string ImageFullPath => string.IsNullOrEmpty(ImageUrl) ? null : $"https://johnshop.azurewebsites.net{ImageUrl.Substring(1)}";
     }
 }

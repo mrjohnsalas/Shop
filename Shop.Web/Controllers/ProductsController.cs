@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using Shop.Web.Models;
 
 namespace Shop.Web.Controllers
@@ -24,7 +25,7 @@ namespace Shop.Web.Controllers
         // GET: Products
         public IActionResult Index()
         {
-            return View(_repository.GetAll());
+            return View(_repository.GetAll().OrderBy(x => x.Name));
         }
 
         // GET: Products/Details/5
@@ -88,7 +89,7 @@ namespace Shop.Web.Controllers
             {
                 return NotFound();
             }
-            return View(product);
+            return View(ToProductView(product));
         }
 
         // POST: Products/Edit/5
@@ -155,5 +156,19 @@ namespace Shop.Web.Controllers
             await _repository.DeleteAsync(product);
             return RedirectToAction(nameof(Index));
         }
+
+        private ProductViewModel ToProductView(Product product) =>
+            new ProductViewModel
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Price = product.Price,
+                ImageUrl = product.ImageUrl,
+                LastPurchase = product.LastPurchase,
+                LastSale = product.LastSale,
+                IsAvailable = product.IsAvailable,
+                Stock = product.Stock,
+                User = product.User,
+            };
     }
 }
